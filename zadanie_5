@@ -1,0 +1,149 @@
+#define _CRT_SECURE_NO_WARNINGS
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <iostream>
+#include <string.h>
+#include <locale.h>
+#include <queue>
+#include <vector>
+#include <limits.h>
+
+void bfs(int startVertex, int G, int** M, std::vector<int>& distances) {
+    std::queue<int> q;
+    bool* visited = (bool*)malloc(G * sizeof(bool));
+
+    for (int i = 0; i < G; i++) {
+        visited[i] = false;
+        distances[i] = -1;  // Изначально расстояние до всех вершин неопределено
+    }
+
+    visited[startVertex] = true;
+    distances[startVertex] = 0;
+    q.push(startVertex);
+
+    while (!q.empty()) {
+        int currentVertex = q.front();
+        q.pop();
+
+        for (int i = 0; i < G; i++) {
+            if (M[currentVertex][i] != 0 && !visited[i]) {
+                visited[i] = true;
+                distances[i] = distances[currentVertex] + 1;
+                q.push(i);
+            }
+        }
+    }
+
+    free(visited);
+}
+
+void findRadiusAndDiameter(int G, int** M, std::vector<int>& peripheral, std::vector<int>& central) {
+    int global_diameter = 0;
+    int global_radius = INT_MAX;
+
+    for (int i = 0; i < G; i++) {
+        std::vector<int> distances(G, -1);
+        bfs(i, G, M, distances);
+
+        int max_dist = 0;
+        for (int j = 0; j < G; j++) {
+            if (distances[j] > max_dist) {
+                max_dist = distances[j];
+            }
+        }
+
+        if (max_dist > global_diameter) {
+            global_diameter = max_dist;
+        }
+
+        if (max_dist < global_radius) {
+            global_radius = max_dist;
+        }
+
+        // Определение периферийных вершин
+        if (max_dist == global_diameter) {
+            peripheral.push_back(i);
+        }
+
+        // Определение центральных вершин
+        if (max_dist == global_radius) {
+            central.push_back(i);
+        }
+    }
+
+    printf("Диаметр графа: %d\n", global_diameter);
+    printf("Радиус графа: %d\n", (global_radius != INT_MAX) ? global_radius : -1); // Если радиус остается MAX, значит, граф полностью недоступен
+}
+
+int main() {
+    setlocale(LC_ALL, "Russian");
+    srand(time(NULL));
+    const int G = 5;  // Размер графа
+    int** M = (int**)malloc(G * sizeof(int*));
+    for (int i = 0; i < G; i++) {
+        M[i] = (int*)malloc(G * sizeof(int));
+    }
+
+    // Инициализация матрицы смежности
+    for (int i = 0; i < G; i++) {
+        for (int j = 0; j < G; j++) {
+            if (i == j) {
+                M[i][j] = 0;  // Нет петли
+            }
+            else {
+                M[i][j] = 0;  // Изначально нет ребер
+            }
+        }
+    }
+    // Генерация случайных рёбер для неориентированного графа
+    for (int i = 0; i < G; i++) {
+        for (int j = i + 1; j < G; j++) {
+            M[i][j] = M[j][i] = rand() % 2;  // Случайное ребро между i и j
+        }
+    }
+    // Вывод матрицы смежности на экран
+    printf("Матрица смежности:\n");
+    for (int i = 0; i < G; i++) {
+        for (int j = 0; j < G; j++) {
+            printf("%d ", M[i][j]);
+        }
+        printf("\n");
+    }
+
+    // Выполнение BFS от вершины 0 и вывод расстояний
+    std::vector<int> distances(G, -1);
+    bfs(0, G, M, distances);
+    printf("Расстояния от вершины 0:\n");
+    for (int i = 0; i < G; i++) {
+        if (distances[i] != -1) {
+            printf("До вершины %d: %d\n", i, distances[i]);
+        }
+        else {
+            printf("До вершины %d: недоступно\n", i);
+        }
+    }
+
+    std::vector<int> peripheral;
+    std::vector<int> central;
+    findRadiusAndDiameter(G, M, peripheral, central);
+
+    printf("Периферийные вершины: ");
+    for (int v : peripheral) {
+        printf("%d ", v);
+    }
+    printf("\n");
+
+    printf("Центральные вершины: ");
+    for (int v : central) {
+        printf("%d ", v);
+    }
+    printf("\n");
+
+    for (int i = 0; i < G; i++) {
+        free(M[i]);
+    }
+    free(M);
+
+    return 0;
+}
